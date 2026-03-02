@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>台大暖心早安 - 點餐系統</title>
+  <style>
+    :root {
+      --primary: #FF9F43;     /* 溫暖橘 */
+      --secondary: #FFF4E6;   /* 淺橘背景 */
+      --text: #5D4037;        /* 質感深棕 */
+      --white: #ffffff;
+      --border: #f0e6d6;
+    }
+
+    body {
+      font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      background-color: var(--secondary);
+      color: var(--text);
+      margin: 0;
+      padding: 15px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 450px;
+      background: var(--white);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+
+    .header {
+      background-color: var(--primary);
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+
+    .header h1 { margin: 0; font-size: 22px; }
+    .header p { margin: 5px 0 0; opacity: 0.9; font-size: 14px; }
+
+    .menu-container { padding: 20px; }
+    
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .menu-item.selected {
+      border-color: var(--primary);
+      background-color: #fff9f3;
+    }
+
+    .menu-item img {
+      width: 65px;
+      height: 65px;
+      border-radius: 10px;
+      object-fit: cover;
+      margin-right: 15px;
+    }
+
+    .item-details { flex-grow: 1; }
+    .item-name { font-weight: bold; display: block; }
+    .item-price { color: var(--primary); font-size: 14px; }
+
+    .order-form { padding: 0 20px 20px; }
+    .input-field {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    .submit-btn:disabled { background-color: #ccc; }
+
+    #status-msg {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="header">
+    <h1>🏥 台大暖心早安</h1>
+    <p>給辛勞的您，元氣滿滿的開始</p>
+  </div>
+
+  <div class="menu-container">
+    <div class="menu-item" onclick="toggleSelect(this, '活力歐姆蛋吐司', 65)">
+      <img src="https://images.unsplash.com/photo-1525351484163-7529414344d8?w=150" alt="">
+      <div class="item-details">
+        <span class="item-name">活力歐姆蛋全麥吐司</span>
+        <span class="item-price">$65</span>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="toggleSelect(this, '低GI雞胸沙拉', 95)">
+      <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150" alt="">
+      <div class="item-details">
+        <span class="item-name">醫護高纖雞胸溫沙拉</span>
+        <span class="item-price">$95</span>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="toggleSelect(this, '燕麥奶拿鐵', 75)">
+      <img src="https://images.unsplash.com/photo-1544145945-f904253d0c7e?w=150" alt="">
+      <div class="item-details">
+        <span class="item-name">燕麥奶提神拿鐵 (無糖)</span>
+        <span class="item-price">$75</span>
+      </div>
+    </div>
+
+    <div class="menu-item" onclick="toggleSelect(this, '補氣紫米粥', 55)">
+      <img src="https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=150" alt="">
+      <div class="item-details">
+        <span class="item-name">低糖暖心紅豆紫米粥</span>
+        <span class="item-price">$55</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="order-form">
+    <input type="text" id="userName" class="input-field" placeholder="訂購人姓名">
+    <input type="tel" id="userPhone" class="input-field" placeholder="聯絡電話 (09xx...)">
+    
+    <button id="submitBtn" class="submit-btn" onclick="sendOrder()">送出訂單 ($0)</button>
+    <div id="status-msg">處理中，請稍候...</div>
+  </div>
+</div>
+
+<script>
+  // 請確認這是您最新的 Google 部署網址
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwjoBAF8LzQCPIPUJXfy6ONATKJMkoYJgymWCKa6yzogkCkxZLC3XIhbCGzrxG50l5gLQ/exec";
+
+  let selectedOrders = [];
+  let totalAmount = 0;
+
+  function toggleSelect(element, name, price) {
+    element.classList.toggle('selected');
+    const index = selectedOrders.indexOf(name);
+    
+    if (index > -1) {
+      selectedOrders.splice(index, 1);
+      totalAmount -= price;
+    } else {
+      selectedOrders.push(name);
+      totalAmount += price;
+    }
+    
+    document.getElementById('submitBtn').innerText = `送出訂單 ($${totalAmount})`;
+  }
+
+  async function sendOrder() {
+    const name = document.getElementById('userName').value;
+    const phone = document.getElementById('userPhone').value;
+    const btn = document.getElementById('submitBtn');
+    const msg = document.getElementById('status-msg');
+
+    if (!name || !phone) return alert('請完整填寫姓名與電話！');
+    if (selectedOrders.length === 0) return alert('請至少選擇一項美味早餐！');
+
+    const data = {
+      userName: name,
+      userPhone: phone,
+      orderItems: selectedOrders.join(', '),
+      totalPrice: totalAmount
+    };
+
+    btn.disabled = true;
+    msg.style.display = 'block';
+
+    try {
+      // 使用 fetch 發送資料到 Google Apps Script
+      const response = await fetch(WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors", // 注意：Google Apps Script POST 限制較多，no-cors 是最快解決方式
+        cache: "no-cache",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      // 因為 no-cors 無法獲取回傳內容，我們假設只要沒噴錯就是成功
+      alert("訂單已送出！感謝您的點餐。");
+      location.reload();
+
+    } catch (err) {
+      alert('發生錯誤：' + err);
+      btn.disabled = false;
+      msg.style.display = 'none';
+    }
+  }
+</script>
+
+</body>
+</html>
