@@ -1,0 +1,68 @@
+/**
+ * Google Apps Script: 接收會議調查網頁資料
+ * * 設定步驟：
+ * 1. 在 Google 試算表中，點擊「擴充功能」 > 「Apps Script」。
+ * 2. 將此程式碼貼入編輯器，並儲存專案。
+ * 3. 確保試算表頁籤名稱已改為 "TIME"。
+ * 4. 點擊「部署」 > 「新部署」。
+ * 5. 類型選擇「網頁應用程式」，並將「誰有權存取」設定為「所有人」。
+ * 6. 部署後複製產生的「網頁應用程式 URL」。
+ */
+
+function doPost(e) {
+  const SHEET_NAME = "TIME";
+  const lock = LockService.getScriptLock();
+  
+  // 嘗試獲取鎖定，避免多人同時寫入造成資料覆蓋
+  try {
+    lock.waitLock(10000); 
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      'result': 'error', 
+      'error': '系統繁忙，請稍後再試' 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    const doc = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = doc.getSheetByName(SHEET_NAME);
+    
+    // 如果找不到名為 TIME 的頁籤，則建立一個
+    if (!sheet) {
+      sheet = doc.insertSheet(SHEET_NAME);
+      // 寫入標題列
+      sheet.appendRow(["提交時間", "使用者姓名", "已選日期", "選擇天數", "調查月份"]);
+      sheet.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#d9ead3");
+    }
+
+    // 解析從網頁傳來的 JSON 資料
+    const data = JSON.parse(e.postData.contents);
+    const payload = data.data;
+
+    // 將資料寫入試算表新的一列
+    sheet.appendRow([
+      payload.timestamp,
+      payload.userName,
+      payload.selectedDates,
+      payload.count,
+      payload.period
+    ]);
+
+    return ContentService.createTextOutput(JSON.stringify({ 
+      'result': 'success' 
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      'result': 'error', 
+      'error': error.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// 測試用：GET 請求確認腳本運作中
+function doGet() {
+  return ContentService.createTextOutput("Service is running. Target Sheet: TIME");
+}0000000000000000000000000000000000
