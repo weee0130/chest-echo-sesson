@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chest Echo 課程報名暨課前問卷</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+
+        :root {
+            --bg-dark: #0f172a;
+            --accent-cyan: #22d3ee;
+            --accent-blue: #3b82f6;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(34, 211, 238, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 20%);
+            color: #f1f5f9;
+            font-family: 'Noto Sans TC', sans-serif;
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .tech-border {
+            position: relative;
+        }
+
+        .tech-border::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0;
+            width: 20px; height: 2px;
+            background: var(--accent-cyan);
+        }
+
+        .tech-border::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0;
+            width: 2px; height: 20px;
+            background: var(--accent-cyan);
+        }
+
+        input[type="radio"]:checked {
+            accent-color: var(--accent-cyan);
+        }
+
+        .matrix-table th, .matrix-table td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 8px;
+        }
+
+        .section-header {
+            border-left: 4px solid var(--accent-cyan);
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            transition: all 0.3s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+        }
+        
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- 標題區域 -->
+        <header class="text-center mb-12">
+            <div class="inline-block p-3 mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400">
+                    <path d="M2 12h3l2-9 4 18 3-9h3" />
+                    <circle cx="18" cy="12" r="2" />
+                </svg>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold tracking-wider text-white mb-2">Chest Echo</h1>
+            <p class="text-cyan-400 font-light uppercase tracking-[0.2em] mb-4">胸部超音波專業課程報名</p>
+            <div class="h-1 w-24 bg-cyan-500 mx-auto rounded-full"></div>
+        </header>
+
+        <form id="echoForm" class="space-y-8">
+            <!-- A. 基本資料 -->
+            <section class="glass-card p-6 md:p-8 tech-border">
+                <div class="section-header">
+                    <h2 class="text-xl font-semibold text-white">A. 基本資料與聯繫</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-sm text-slate-400">姓名</label>
+                        <input type="text" name="name" required placeholder="請輸入全名" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 focus:outline-none focus:border-cyan-500 transition-colors text-white">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm text-slate-400">聯絡電話</label>
+                        <input type="tel" name="phone" required placeholder="09xx-xxx-xxx" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 focus:outline-none focus:border-cyan-500 transition-colors text-white">
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <label class="text-sm text-slate-400">任職機構/部門</label>
+                        <input type="text" name="organization" required placeholder="例如：XX醫院 胸腔內科" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 focus:outline-none focus:border-cyan-500 transition-colors text-white">
+                    </div>
+                </div>
+            </section>
+
+            <!-- B. 專業背景調查 -->
+            <section class="glass-card p-6 md:p-8 tech-border">
+                <div class="section-header">
+                    <h2 class="text-xl font-semibold text-white">B. 專業背景調查</h2>
+                </div>
+                <div class="space-y-6">
+                    <div class="space-y-3">
+                        <label class="block text-sm text-slate-400">您的專業職稱</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" name="title" value="主治醫師" required class="w-4 h-4">
+                                <span>主治醫師</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" name="title" value="住院醫師/研究員" class="w-4 h-4">
+                                <span>住院醫師/研究員</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" name="title" value="放射師/超音波師" class="w-4 h-4">
+                                <span>放射師/超音波師</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" name="title" value="護理師/其他" class="w-4 h-4">
+                                <span>護理師/其他</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm text-slate-400">平均每週執行胸部超音波的次數</label>
+                        <select name="frequency" required class="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 focus:outline-none focus:border-cyan-500 transition-colors appearance-none text-white">
+                            <option value="">請選擇範圍</option>
+                            <option value="0 次 (初學者)">0 次 (初學者)</option>
+                            <option value="1-5 次">1-5 次</option>
+                            <option value="6-15 次">6-15 次</option>
+                            <option value="15 次以上">15 次以上</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- C. 臨床能力自評 (矩陣式) -->
+            <section class="glass-card p-6 md:p-8 tech-border overflow-hidden">
+                <div class="section-header">
+                    <h2 class="text-xl font-semibold text-white">C. 臨床能力自評</h2>
+                    <p class="text-xs text-slate-500 mt-1">1=不熟悉, 5=極熟練</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full matrix-table text-left">
+                        <thead>
+                            <tr class="text-slate-400 text-sm">
+                                <th class="w-1/2">技術項目</th>
+                                <th class="text-center">1</th>
+                                <th class="text-center">2</th>
+                                <th class="text-center">3</th>
+                                <th class="text-center">4</th>
+                                <th class="text-center">5</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm text-slate-300">
+                            <tr>
+                                <td>A-lines & B-lines 辨識</td>
+                                <td class="text-center"><input type="radio" name="q1" value="1" required></td>
+                                <td class="text-center"><input type="radio" name="q1" value="2"></td>
+                                <td class="text-center"><input type="radio" name="q1" value="3"></td>
+                                <td class="text-center"><input type="radio" name="q1" value="4"></td>
+                                <td class="text-center"><input type="radio" name="q1" value="5"></td>
+                            </tr>
+                            <tr>
+                                <td>胸水定位與量化估算</td>
+                                <td class="text-center"><input type="radio" name="q2" value="1" required></td>
+                                <td class="text-center"><input type="radio" name="q2" value="2"></td>
+                                <td class="text-center"><input type="radio" name="q2" value="3"></td>
+                                <td class="text-center"><input type="radio" name="q2" value="4"></td>
+                                <td class="text-center"><input type="radio" name="q2" value="5"></td>
+                            </tr>
+                            <tr>
+                                <td>氣胸判定 (Lung point)</td>
+                                <td class="text-center"><input type="radio" name="q3" value="1" required></td>
+                                <td class="text-center"><input type="radio" name="q3" value="2"></td>
+                                <td class="text-center"><input type="radio" name="q3" value="3"></td>
+                                <td class="text-center"><input type="radio" name="q3" value="4"></td>
+                                <td class="text-center"><input type="radio" name="q3" value="5"></td>
+                            </tr>
+                            <tr>
+                                <td>橫隔膜運動功能評估</td>
+                                <td class="text-center"><input type="radio" name="q4" value="1" required></td>
+                                <td class="text-center"><input type="radio" name="q4" value="2"></td>
+                                <td class="text-center"><input type="radio" name="q4" value="3"></td>
+                                <td class="text-center"><input type="radio" name="q4" value="4"></td>
+                                <td class="text-center"><input type="radio" name="q4" value="5"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- D. 課程期望 -->
+            <section class="glass-card p-6 md:p-8 tech-border">
+                <div class="section-header">
+                    <h2 class="text-xl font-semibold text-white">D. 課程期望與需求</h2>
+                </div>
+                <div class="space-y-4">
+                    <label class="text-sm text-slate-400 block">您希望在本次課程中特別加強的部分？</label>
+                    <textarea name="expectations" rows="4" placeholder="例如：介入性抽吸導引技巧..." class="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-3 focus:outline-none focus:border-cyan-500 transition-colors text-white"></textarea>
+                </div>
+            </section>
+
+            <div class="pt-6 pb-12 text-center">
+                <button type="submit" id="submitBtn" class="btn-submit px-12 py-4 rounded-full text-lg font-bold tracking-widest text-white uppercase flex items-center justify-center mx-auto group">
+                    <span>確認送出報名表</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </button>
+                <p id="statusMsg" class="mt-4 text-xs text-slate-500 italic">提交即代表您同意本課程之隱私權與個資處理條款</p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // 重要：請將此處替換為您在 Google Apps Script 部署後獲得的「網頁應用程式 URL」
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzXbMhOOxtf1yLH9lp_vP_tqfEOEBne0ONOCmexkbl-PP_ESuVYtySlp5fg-9p_GSD7/exec";
+
+        document.getElementById('echoForm').onsubmit = function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            const statusMsg = document.getElementById('statusMsg');
+            
+            if (GAS_URL === "YOUR_GAS_WEB_APP_URL_HERE") {
+                alert("錯誤：請先在代碼中填入您的 Google Apps Script 網址！");
+                return;
+            }
+
+            btn.disabled = true;
+            const originalBtnText = btn.innerHTML;
+            btn.innerHTML = '正在同步至雲端 <span class="ml-2 animate-pulse">...</span>';
+            
+            // 建立提交參數
+            const formData = new FormData(this);
+            const searchParams = new URLSearchParams();
+            for (const pair of formData) {
+                searchParams.append(pair[0], pair[1]);
+            }
+
+            // 使用 fetch 發送 POST
+            fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors', // 必須使用 no-cors 模式
+                body: searchParams
+            })
+            .then(() => {
+                showSuccessModal();
+            })
+            .catch(err => {
+                console.error("傳送失敗:", err);
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+                statusMsg.innerText = "傳送失敗，請確認網路連線或稍後再試。";
+                statusMsg.classList.add('text-red-400');
+            });
+        };
+
+        function showSuccessModal() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-md';
+            modal.innerHTML = `
+                <div class="glass-card p-10 text-center border-cyan-500 shadow-[0_0_30px_rgba(34,211,238,0.2)] mx-4 scale-up">
+                    <div class="w-20 h-20 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2 text-white">報名成功</h3>
+                    <p class="text-slate-400 mb-6">我們已收到您的資料，期待在課程中見到您。</p>
+                    <button onclick="window.location.reload()" class="bg-cyan-500 hover:bg-cyan-400 px-8 py-2 rounded-full text-sm font-bold text-white transition-all shadow-lg shadow-cyan-500/50">關閉</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+    </script>
+</body>
+</html>
