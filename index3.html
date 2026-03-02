@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活力晨食 NTUH | 台大醫院店線上點餐</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #fffaf0;
+        }
+        .orange-gradient {
+            background: linear-gradient(135deg, #ff9d2e 0%, #ff6b35 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px -5px rgba(255, 107, 53, 0.2);
+        }
+        .food-img {
+            height: 140px;
+            object-fit: cover;
+            border-radius: 12px;
+            width: 100%;
+        }
+        /* Loading Animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ffffff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="pb-12">
+
+    <!-- 頂部標題區 -->
+    <header class="orange-gradient text-white py-10 px-6 text-center rounded-b-[50px] shadow-xl mb-10">
+        <h1 class="text-4xl font-bold mb-3 tracking-wide">☀️ 活力晨食 NTUH</h1>
+        <p class="text-orange-100 text-lg">為醫護人員加油打氣！新鮮手作早餐直送診間</p>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4">
+        
+        <!-- 表單容器 -->
+        <div class="bg-white rounded-[2rem] shadow-2xl p-6 md:p-10 border border-orange-50">
+            
+            <!-- 1. 配送資訊 -->
+            <section class="mb-12">
+                <div class="flex items-center mb-6">
+                    <span class="bg-orange-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3 shadow-md">1</span>
+                    <h2 class="text-2xl font-bold text-gray-800">配送資訊</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-1">
+                        <label class="block text-sm font-bold text-gray-600 ml-1">取餐姓名</label>
+                        <input type="text" id="userName" placeholder="請輸入姓名" class="w-full border-2 border-orange-100 rounded-2xl px-5 py-3 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-sm font-bold text-gray-600 ml-1">聯繫電話 / 分機</label>
+                        <input type="text" id="userPhone" placeholder="09xx-xxx-xxx / 分機" class="w-full border-2 border-orange-100 rounded-2xl px-5 py-3 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all">
+                    </div>
+                    <div class="md:col-span-2 space-y-1">
+                        <label class="block text-sm font-bold text-gray-600 ml-1">外送地址 (大樓/樓層/診間/病房)</label>
+                        <input type="text" id="userAddr" placeholder="例如：東址大樓 3樓 302診間" class="w-full border-2 border-orange-100 rounded-2xl px-5 py-3 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 今日菜單 -->
+            <section class="mb-12">
+                <div class="flex items-center mb-8">
+                    <span class="bg-orange-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3 shadow-md">2</span>
+                    <h2 class="text-2xl font-bold text-gray-800">精選菜單</h2>
+                </div>
+                
+                <!-- 蛋餅類 -->
+                <div class="mb-10">
+                    <h3 class="flex items-center text-lg font-bold text-orange-700 mb-4 bg-orange-50 py-2 px-4 rounded-xl w-max">🍳 經典手工蛋餅</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="menu-item card-hover bg-white border border-gray-100 p-4 rounded-3xl flex flex-col" data-name="原味蛋餅" data-price="30">
+                            <img src="https://images.unsplash.com/photo-1598103442097-8b74394b95c6?auto=format&fit=crop&w=400&q=80" alt="原味蛋餅" class="food-img mb-4">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">原味蛋餅</h4>
+                                    <p class="text-orange-600 font-bold">$30</p>
+                                </div>
+                                <div class="flex items-center border-2 border-orange-100 rounded-xl px-2">
+                                    <span class="text-xs text-gray-400 mr-2">數量</span>
+                                    <input type="number" min="0" value="0" class="qty w-12 py-1 text-center font-bold outline-none text-gray-700">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="menu-item card-hover bg-white border border-gray-100 p-4 rounded-3xl flex flex-col" data-name="起司蛋餅" data-price="45">
+                            <img src="https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=400&q=80" alt="起司蛋餅" class="food-img mb-4">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">爆漿起司蛋餅</h4>
+                                    <p class="text-orange-600 font-bold">$45</p>
+                                </div>
+                                <div class="flex items-center border-2 border-orange-100 rounded-xl px-2">
+                                    <span class="text-xs text-gray-400 mr-2">數量</span>
+                                    <input type="number" min="0" value="0" class="qty w-12 py-1 text-center font-bold outline-none text-gray-700">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 吐司類 -->
+                <div class="mb-10">
+                    <h3 class="flex items-center text-lg font-bold text-orange-700 mb-4 bg-orange-50 py-2 px-4 rounded-xl w-max">🍞 炭烤吐司 / 漢堡</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="menu-item card-hover bg-white border border-gray-100 p-4 rounded-3xl flex flex-col" data-name="豬排蛋吐司" data-price="55">
+                            <img src="https://images.unsplash.com/photo-1550507992-eb63ffee0847?auto=format&fit=crop&w=400&q=80" alt="豬排蛋吐司" class="food-img mb-4">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">肉排蛋吐司</h4>
+                                    <p class="text-orange-600 font-bold">$55</p>
+                                </div>
+                                <div class="flex items-center border-2 border-orange-100 rounded-xl px-2">
+                                    <span class="text-xs text-gray-400 mr-2">數量</span>
+                                    <input type="number" min="0" value="0" class="qty w-12 py-1 text-center font-bold outline-none text-gray-700">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="menu-item card-hover bg-white border border-gray-100 p-4 rounded-3xl flex flex-col" data-name="咔啦雞腿堡" data-price="70">
+                            <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80" alt="漢堡" class="food-img mb-4">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">咔啦雞腿堡</h4>
+                                    <p class="text-orange-600 font-bold">$70</p>
+                                </div>
+                                <div class="flex items-center border-2 border-orange-100 rounded-xl px-2">
+                                    <span class="text-xs text-gray-400 mr-2">數量</span>
+                                    <input type="number" min="0" value="0" class="qty w-12 py-1 text-center font-bold outline-none text-gray-700">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 飲品 -->
+                <div>
+                    <h3 class="flex items-center text-lg font-bold text-orange-700 mb-4 bg-orange-50 py-2 px-4 rounded-xl w-max">☕️ 活力飲品</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="menu-item card-hover bg-white border border-gray-100 p-4 rounded-3xl flex flex-col" data-name="研磨咖啡" data-price="45">
+                            <img src="https://images.unsplash.com/photo-1541167760496-162955ed8a9f?auto=format&fit=crop&w=400&q=80" alt="咖啡" class="food-img mb-4">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">現磨拿鐵 (冰/熱)</h4>
+                                    <p class="text-orange-600 font-bold">$45</p>
+                                </div>
+                                <div class="flex items-center border-2 border-orange-100 rounded-xl px-2">
+                                    <span class="text-xs text-gray-400 mr-2">數量</span>
+                                    <input type="number" min="0" value="0" class="qty w-12 py-1 text-center font-bold outline-none text-gray-700">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="menu-item card-hover bg-white border border-gray-100 p-4 rounded-3xl flex flex-col" data-name="濃醇豆漿" data-price="25">
+                            <img src="https://images.unsplash.com/photo-1444418185997-114f60046997?auto=format&fit=crop&w=400&q=80" alt="豆漿" class="food-img mb-4">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <h4 class="font-bold text-gray-800">古早味豆漿</h4>
+                                    <p class="text-orange-600 font-bold">$25</p>
+                                </div>
+                                <div class="flex items-center border-2 border-orange-100 rounded-xl px-2">
+                                    <span class="text-xs text-gray-400 mr-2">數量</span>
+                                    <input type="number" min="0" value="0" class="qty w-12 py-1 text-center font-bold outline-none text-gray-700">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 結帳區 -->
+            <div id="summaryBox" class="bg-orange-50 rounded-[2rem] p-8 mb-10 border-2 border-orange-100 hidden">
+                <h3 class="font-bold text-xl text-orange-800 mb-4 flex items-center">
+                    <span class="mr-2">📝</span> 您的訂單清單
+                </h3>
+                <ul id="orderList" class="text-gray-700 space-y-2 mb-6 border-b border-orange-200 pb-4"></ul>
+                <div class="text-2xl font-bold text-orange-700 flex justify-between items-center">
+                    <span>應付金額：</span>
+                    <span id="totalPrice" class="text-3xl">$0</span>
+                </div>
+            </div>
+
+            <!-- 送出按鈕 -->
+            <button id="submitBtn" onclick="submitOrder()" class="w-full orange-gradient text-white font-bold py-5 rounded-3xl text-2xl shadow-xl hover:opacity-90 active:scale-[0.97] transition-all flex items-center justify-center">
+                確認送出訂單 🚀
+            </button>
+            <p class="text-center text-gray-400 text-sm mt-6">送出後請留意手機通訊，我們將盡快為您配送</p>
+        </div>
+
+        <!-- 成功彈窗 -->
+        <div id="successModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-white rounded-[2.5rem] p-10 max-w-sm w-full text-center shadow-2xl scale-in-center">
+                <div class="bg-green-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-5xl">✅</div>
+                <h3 class="text-3xl font-bold text-gray-800 mb-3">訂單已送出！</h3>
+                <p class="text-gray-600 mb-8 leading-relaxed">您的美味早餐正準備中，感謝您為醫護辛勤付出！</p>
+                <button onclick="closeModal()" class="w-full bg-orange-500 hover:bg-orange-600 py-4 rounded-2xl font-bold text-white text-lg transition-colors shadow-lg">
+                    太棒了！
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- 設定區 ---
+        const scriptURL = "https://script.google.com/macros/s/AKfycbznI7o0ZBLzNWr-gYKBu8H0Q91MPywSBNmuljDaxXBXZD186vF7cEknPEhYm9k2iq4W/exec";
+
+        const inputs = document.querySelectorAll('.qty');
+        const summaryBox = document.getElementById('summaryBox');
+        const orderList = document.getElementById('orderList');
+        const totalPriceEl = document.getElementById('totalPrice');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // 更新摘要
+        inputs.forEach(input => {
+            input.addEventListener('change', updateSummary);
+            input.addEventListener('keyup', updateSummary);
+        });
+
+        function updateSummary() {
+            let total = 0;
+            let items = [];
+            
+            document.querySelectorAll('.menu-item').forEach(item => {
+                const name = item.getAttribute('data-name');
+                const price = parseInt(item.getAttribute('data-price'));
+                const qty = parseInt(item.querySelector('.qty').value) || 0;
+                
+                if (qty > 0) {
+                    total += price * qty;
+                    items.push(`
+                        <li class="flex justify-between items-center bg-white px-4 py-2 rounded-xl shadow-sm">
+                            <span class="font-medium">${name} x ${qty}</span>
+                            <span class="font-bold text-orange-600">$${price * qty}</span>
+                        </li>
+                    `);
+                }
+            });
+
+            if (total > 0) {
+                summaryBox.classList.remove('hidden');
+                orderList.innerHTML = items.join('');
+                totalPriceEl.innerText = `$${total}`;
+            } else {
+                summaryBox.classList.add('hidden');
+            }
+        }
+
+        // 提交訂單
+        async function submitOrder() {
+            const name = document.getElementById('userName').value.trim();
+            const phone = document.getElementById('userPhone').value.trim();
+            const addr = document.getElementById('userAddr').value.trim();
+            const total = totalPriceEl.innerText;
+
+            if (!name || !phone || !addr) {
+                alert('請填寫完整的外送資訊，好讓我們找到您喔！');
+                return;
+            }
+
+            if (total === '$0') {
+                alert('您的購物車還是空的，快去選點好料吧！');
+                return;
+            }
+
+            let orderDetails = [];
+            document.querySelectorAll('.menu-item').forEach(item => {
+                const itemName = item.getAttribute('data-name');
+                const qty = parseInt(item.querySelector('.qty').value) || 0;
+                if (qty > 0) orderDetails.push(`${itemName}x${qty}`);
+            });
+
+            // 按鈕禁用狀態
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loader"></div> 傳送訂單中...';
+
+            const payload = {
+                userName: name,
+                userPhone: phone,
+                userAddr: addr,
+                orderItems: orderDetails.join(', '),
+                totalPrice: total
+            };
+
+            try {
+                // 使用 fetch 傳送 POST 到 GAS
+                // 這裡使用 no-cors 是因為 GAS 本身回傳跨域限制較多，no-cors 可以確保發送成功
+                await fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // 顯示成功視窗
+                document.getElementById('successModal').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error!", error);
+                alert('傳送失敗，請確認網路連線是否正常。');
+                submitBtn.disabled = false;
+                submitBtn.innerText = '確認送出訂單 🚀';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('successModal').classList.add('hidden');
+            location.reload(); // 提交後重整頁面
+        }
+    </script>
+</body>
+</html>
