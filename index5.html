@@ -1,62 +1,202 @@
-/**
- * 處理 POST 請求：接收來自 HTML 表單的資料並寫入指定的試算表分頁
- */
-function doPost(e) {
-  try {
-    const lock = LockService.getScriptLock();
-    // 嘗試取得鎖定，避免多個使用者同時送出導致資料錯亂（等待 10 秒）
-    lock.waitLock(10000); 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>早安晨之美 - 線上點餐系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #fefce8; }
+        .item-input {
+            -moz-appearance: textfield;
+        }
+        .item-input::-webkit-outer-spin-button,
+        .item-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 font-sans">
+    <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-yellow-200">
+        <!-- 頁首 -->
+        <div class="bg-yellow-400 p-8 text-center">
+            <h1 class="text-4xl font-black text-yellow-900 tracking-wider">早安晨之美 🍳</h1>
+            <p class="text-yellow-800 mt-2 font-medium">美好的一天從早餐開始，請選擇您的餐點</p>
+        </div>
 
-    // 取得當前試算表
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // 根據您的需求：指定工作頁籤名稱為 'breakfast'
-    const sheet = ss.getSheetByName('breakfast');
-    
-    // 防錯處理：如果找不到該名稱的頁籤，則傳回錯誤
-    if (!sheet) {
-      throw new Error("找不到名為 'breakfast' 的工作頁籤，請檢查名稱是否正確。");
-    }
+        <!-- 表單內容 -->
+        <form id="orderForm" class="p-6 md:p-10 space-y-8">
+            <!-- 客戶資訊 -->
+            <div class="bg-yellow-50 p-4 rounded-xl">
+                <label class="block text-lg font-bold text-yellow-900 mb-2">姓名 / 桌號</label>
+                <input type="text" name="姓名 / 桌號" placeholder="例如：3號桌 或 王小明" required 
+                    class="w-full px-4 py-3 border-2 border-yellow-200 rounded-lg focus:border-yellow-500 focus:ring-0 outline-none transition-all">
+            </div>
 
-    // 取得第一列的標題（Header），用來比對傳入的 JSON 欄位
-    const lastColumn = sheet.getLastColumn();
-    if (lastColumn === 0) {
-      throw new Error("工作表第一列必須先手動填入標題欄位（例如：時間、姓名 / 桌號、原味蛋餅...）");
-    }
-    
-    const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
-    
-    // 解析前端傳來的 JSON 資料
-    const data = JSON.parse(e.postData.contents);
-    
-    // 依照標題順序重組資料行，並自動加入目前的伺服器時間
-    const newRow = headers.map(function(header) {
-      if (header === "時間") return new Date(); // 如果有時間欄位則自動填入
-      return data[header] !== undefined ? data[header] : ""; 
-    });
+            <!-- 餐點列表 -->
+            <div>
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="bg-yellow-400 w-2 h-6 rounded-full mr-2"></span>
+                    精選品項 (10項)
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 1-5 -->
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                        <span class="font-medium text-gray-700">原味蛋餅</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="原味蛋餅" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">份</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">起司蛋餅</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="起司蛋餅" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">份</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">火腿蛋吐司</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="火腿蛋吐司" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">份</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">肉排蛋漢堡</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="肉排蛋漢堡" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">份</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">蘿蔔糕</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="蘿蔔糕" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">份</span>
+                        </div>
+                    </div>
+                    <!-- 6-10 -->
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">鐵板麵 (黑胡椒)</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="鐵板麵 (黑胡椒)" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">份</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">原味卡啦雞腿堡</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="原味卡啦雞腿堡" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">份</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">冰奶茶 (中)</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="冰奶茶 (中)" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">杯</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">熱豆漿 (中)</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="熱豆漿 (中)" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">杯</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                        <span class="font-medium text-gray-700">研磨咖啡</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" name="研磨咖啡" min="0" value="0" class="item-input w-12 text-center border-b-2 border-yellow-400 focus:outline-none font-bold text-lg text-yellow-600">
+                            <span class="text-gray-400 text-sm">杯</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    // 將新的一行寫入試算表
-    sheet.appendRow(newRow);
+            <!-- 備註 -->
+            <div>
+                <label class="block text-lg font-bold text-gray-800 mb-2 flex items-center">
+                    <span class="bg-yellow-400 w-2 h-6 rounded-full mr-2"></span>
+                    特別需求
+                </label>
+                <textarea name="備註" rows="3" placeholder="例如：蛋要全熟、飲料去冰、吐司去邊..." 
+                    class="w-full px-4 py-3 border-2 border-gray-100 rounded-lg focus:border-yellow-500 outline-none transition-all"></textarea>
+            </div>
 
-    // 回傳成功訊息給前端
-    return ContentService
-      .createTextOutput(JSON.stringify({ "result": "success", "row": sheet.getLastRow() }))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    // 發生錯誤時回傳錯誤訊息
-    return ContentService
-      .createTextOutput(JSON.stringify({ "result": "error", "error": error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } finally {
-    // 釋放鎖定
-    lock.releaseLock();
-  }
-}
+            <!-- 送出按鈕 -->
+            <button type="submit" id="submitBtn"
+                class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-black text-xl py-4 px-4 rounded-2xl shadow-lg transform hover:-translate-y-1 transition duration-200">
+                送出訂單 🚀
+            </button>
+        </form>
 
-/**
- * 處理 GET 請求：用來檢查 API 是否部署成功
- */
-function doGet(e) {
-  return ContentService.createTextOutput("早餐店 API 運作中。目標頁籤：'breakfast'。");
-}
+        <!-- 狀態顯示彈窗 -->
+        <div id="status" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-10 rounded-3xl text-center max-w-sm w-full shadow-2xl">
+                <div class="text-6xl mb-4">✅</div>
+                <h3 id="statusText" class="text-2xl font-bold text-gray-800 mb-6">訂單已送達！</h3>
+                <button onclick="location.reload()" class="w-full py-4 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold text-lg shadow-md transition-colors">
+                    再點一份
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 使用您提供的新部署網址
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfYxvEdk8R1WPPEg6OTEe0ls-VGYzhQOqbL-jNf4KBFQim_sr7eNQn04dCpiZImeUKkw/exec";
+
+        document.getElementById('orderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const statusDiv = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+
+            // 檢查是否有點餐內容 (避免空白訂單)
+            const formData = new FormData(this);
+            const data = {};
+            let hasOrder = false;
+
+            formData.forEach((value, key) => {
+                data[key] = value;
+                if (key !== '姓名 / 桌號' && key !== '備註' && parseInt(value) > 0) {
+                    hasOrder = true;
+                }
+            });
+
+            if (!hasOrder) {
+                alert("請至少選擇一項餐點喔！");
+                return;
+            }
+
+            // 開始傳送
+            submitBtn.disabled = true;
+            submitBtn.innerText = "正在傳送訂單至後台...";
+
+            // 使用 no-cors 模式傳送
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(() => {
+                statusDiv.classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error!', error.message);
+                alert('系統忙碌中或網路連線失敗，請稍後再試。');
+                submitBtn.disabled = false;
+                submitBtn.innerText = "重新送出 🚀";
+            });
+        });
+    </script>
+</body>
+</html>
