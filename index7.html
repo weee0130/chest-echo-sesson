@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多人開會時間預約系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/lucide-react"></script>
+    <style>
+        .time-slot { transition: all 0.1s; }
+        .heat-0 { background-color: #f3f4f6; }
+        .heat-1 { background-color: #d1fae5; }
+        .heat-2 { background-color: #6ee7b7; }
+        .heat-3 { background-color: #10b981; }
+        .heat-4 { background-color: #059669; }
+        .heat-max { background-color: #064e3b; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    <div id="root"></div>
+
+    <script type="text/javascript">
+        const { useState, useEffect } = React;
+
+        // 設定：已填入您的 Google Apps Script 部署網址
+        const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyesEznci4zeZZ3eUuz7hVwXZJWtMtu-0auN9G-2L6QkE5ASZER7FJuBxMpuOdn1L2TYg/exec"; 
+
+        const DAYS = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"];
+        const TIMES = Array.from({ length: 15 }, (_, i) => `${i + 8}:00`); 
+
+        const App = () => {
+            const [user, setUser] = useState({ name: "", password: "" });
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [myAvailability, setMyAvailability] = useState({}); 
+            const [othersData, setOthersData] = useState([]); 
+            const [loading, setLoading] = useState(false);
+            const [message, setMessage] = useState(null);
+
+            // 1. 初始化讀取所有資料 (GET)
+            const fetchAllData = async () => {
+                try {
+                    const response = await fetch(API_ENDPOINT);
+                    const result = await response.json();
+                    if (result.status === "success") {
+                        setOthersData(result.data.map(item => ({
+                            name: item.name,
+                            password: item.password,
+                            availability: JSON.parse(item.availability || "{}")
+                        })));
+                    }
+                } catch (err) {
+                    console.error("讀取資料失敗", err);
+                }
+            };
+
+            useEffect(() => {
+                fetchAllData();
+            }, []);
+
+            const showMsg = (text, type) => {
+                setMessage({ text, type });
+                setTimeout(() => setMessage(null), 4000);
+            };
+
+            const handleLogin = () => {
+                if (!user.name || !user.password) return showMsg("請輸入姓名與密碼", "error");
+                
+                // 檢查是否為回訪使用者
+                const existing = othersData.find(d => d.name === user.name);
+                if (existing) {
+                    if (existing.password !== user.password) {
+                        return showMsg("密碼不正確，請重新輸入", "error");
+                    }
+                    setMyAvailability(existing.availability);
+                    showMsg("歡迎回來，已載入您的資料", "success");
+                } else {
+                    showMsg("歡迎新使用者！", "success");
+                }
+                setIsLoggedIn(true);
+            };
+
+            const toggleSlot = (day, time) => {
+                const key = `${day}-${time}`;
+                setMyAvailability(prev => ({
+                    ...prev,
+                    [key]: !prev[key]
+                }));
+            };
+
+            // 2. 提交資料 (POST)
+            const handleSubmit = async () => {
+                setLoading(true);
+                try {
+                    const payload = {
+                        name: user.name,
+                        password: user.password,
+                        availability: JSON.stringify(myAvailability)
+                    };
+
+                    // 使用 no-cors 會導致看不到回傳值，建議 Apps Script 處理 CORS
+                    // 這裡使用標準 fetch
+                    const response = await fetch(API_ENDPOINT, {
+                        method: "POST",
+                        mode: "no-cors", // Apps Script POST 通常需要 no-cors 或是特定處理
+                        cache: "no-cache",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // 因為 no-cors 無法讀取內容，我們假設發送成功後手動更新畫面並重新抓取
+                    showMsg("資料儲存請求已送出，正在同步...", "success");
+                    
+                    setTimeout(async () => {
+                        await fetchAllData();
+                        setLoading(false);
+                    }, 2000);
+
+                } catch (err) {
+                    showMsg("連線失敗，請檢查網路", "error");
+                    setLoading(false);
+                }
+            };
+
+            const getSlotInfo = (day, time) => {
+                const key = `${day}-${time}`;
+                return othersData.filter(d => d.availability[key]).map(d => d.name);
+            };
+
+            const getHeatClass = (count) => {
+                if (count === 0) return "heat-0";
+                if (count === 1) return "heat-1";
+                if (count === 2) return "heat-2";
+                if (count === 3) return "heat-3";
+                return "heat-max";
+            };
+
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4">
+                        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+                            <h1 className="text-2xl font-bold mb-6 text-center text-indigo-600">開會時間調查系統</h1>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">您的姓名</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
+                                        value={user.name}
+                                        onChange={e => setUser({...user, name: e.target.value})}
+                                        placeholder="例如：王小明"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">修改密碼 (自訂)</label>
+                                    <input 
+                                        type="password" 
+                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
+                                        value={user.password}
+                                        onChange={e => setUser({...user, password: e.target.value})}
+                                        placeholder="再次登入修改時使用"
+                                    />
+                                </div>
+                                <button 
+                                    onClick={handleLogin}
+                                    className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
+                                >
+                                    進入系統
+                                </button>
+                                <p className="text-[10px] text-slate-400 text-center italic">若您曾經填寫過，請輸入相同的姓名與密碼以修改</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="max-w-6xl mx-auto p-4 md:p-8">
+                    <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                        <div>
+                            <h1 className="text-3xl font-bold text-slate-800">開會時間選擇</h1>
+                            <p className="text-slate-500 font-medium">嗨 {user.name}，請點選您有空的時間並按儲存</p>
+                        </div>
+                        <div className="flex gap-4 w-full md:w-auto">
+                             <button 
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className={`flex-1 md:flex-none px-8 py-3 rounded-full font-bold shadow-lg transition text-white ${loading ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                            >
+                                {loading ? "儲存中..." : "儲存並提交"}
+                            </button>
+                            <button onClick={() => window.location.reload()} className="px-4 text-slate-400 hover:text-slate-600 font-medium">登出</button>
+                        </div>
+                    </header>
+
+                    {message && (
+                        <div className={`fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-xl shadow-2xl z-50 text-white font-bold transition-all ${message.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* 左側：個人填寫 */}
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-indigo-600 border-b pb-2">
+                                <i data-lucide="calendar"></i> 我的有空時間
+                            </h2>
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th className="p-2 text-xs text-slate-400">時段</th>
+                                            {DAYS.map(day => <th key={day} className="p-2 text-sm font-bold text-slate-600">{day}</th>)}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {TIMES.map(time => (
+                                            <tr key={time}>
+                                                <td className="p-2 text-[10px] text-slate-400 text-right pr-4 border-r border-slate-50">{time}</td>
+                                                {DAYS.map(day => (
+                                                    <td 
+                                                        key={`${day}-${time}`}
+                                                        onClick={() => toggleSlot(day, time)}
+                                                        className={`p-2 border border-slate-50 cursor-pointer time-slot ${myAvailability[`${day}-${time}`] ? 'bg-indigo-500' : 'hover:bg-slate-100'}`}
+                                                    >
+                                                        <div className="h-7 w-full"></div>
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* 右側：全體統計 */}
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-emerald-600 border-b pb-2">
+                                <i data-lucide="bar-chart-2"></i> 全體統計 (熱點圖)
+                            </h2>
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th className="p-2 text-xs text-slate-400">時段</th>
+                                            {DAYS.map(day => <th key={day} className="p-2 text-sm font-bold text-slate-600">{day}</th>)}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {TIMES.map(time => (
+                                            <tr key={time}>
+                                                <td className="p-2 text-[10px] text-slate-400 text-right pr-4 border-r border-slate-50">{time}</td>
+                                                {DAYS.map(day => {
+                                                    const availablePeople = getSlotInfo(day, time);
+                                                    return (
+                                                        <td 
+                                                            key={`${day}-${time}`}
+                                                            className={`p-2 border border-slate-50 relative group ${getHeatClass(availablePeople.length)}`}
+                                                        >
+                                                            <div className="h-7 w-full flex items-center justify-center text-[10px] font-bold text-slate-700">
+                                                                {availablePeople.length > 0 ? availablePeople.length : ""}
+                                                            </div>
+                                                            {availablePeople.length > 0 && (
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                                                                    <div className="bg-slate-900 text-white text-[11px] py-1.5 px-3 rounded-lg whitespace-nowrap shadow-2xl">
+                                                                        <div className="font-bold border-b border-slate-700 mb-1">有空的人：</div>
+                                                                        {availablePeople.join(", ")}
+                                                                    </div>
+                                                                    <div className="w-2 h-2 bg-slate-900 rotate-45 mx-auto -mt-1"></div>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+        setTimeout(() => lucide.createIcons(), 500);
+    </script>
+</body>
+</html>
