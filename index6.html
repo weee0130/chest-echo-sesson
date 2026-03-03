@@ -39,22 +39,26 @@
             padding: 8px 12px;
             border-radius: 6px;
             font-size: 12px;
-            min-width: 120px;
+            min-width: 140px;
             bottom: 110%;
             left: 50%;
             transform: translateX(-50%);
             opacity: 0;
             transition: opacity 0.2s;
             pointer-events: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
         .slot-other:hover .tooltip {
             visibility: visible;
             opacity: 1;
         }
 
-        .active-cell {
-            outline: 2px solid #ef4444;
-            z-index: 20;
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -87,7 +91,7 @@
                     <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 active:scale-95 transition shadow-lg shadow-blue-100">
                         進入系統
                     </button>
-                    <p class="text-[10px] text-gray-400 text-center">※ 系統將依據姓名判斷新舊用戶，密碼僅供修改驗證</p>
+                    <p class="text-[10px] text-gray-400 text-center">※ 系統將依據姓名判斷新舊用戶，密碼用於日後修改驗證</p>
                 </div>
             </div>
         </div>
@@ -138,12 +142,12 @@
 
                 <!-- 右側：即時名單面板 (2格) -->
                 <div class="lg:col-span-2">
-                    <div class="sticky top-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 min-h-[400px]">
+                    <div class="sticky top-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[450px]">
                         <h3 class="font-bold text-gray-800 mb-4 pb-2 border-b flex items-center gap-2">
                             👤 誰有空？
                         </h3>
                         <div id="info-panel" class="space-y-4">
-                            <p class="text-sm text-gray-400 italic">滑鼠移至中間熱點圖格子，即時顯示名單...</p>
+                            <p class="text-sm text-gray-400 italic">滑鼠移至中間熱點圖格子，這裡會直接顯示名單...</p>
                         </div>
                     </div>
                 </div>
@@ -154,6 +158,7 @@
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl hidden z-[200] text-sm font-medium"></div>
 
     <script>
+        // 請確保此網址正確且已發佈為「所有人」可存取
         const API_URL = 'https://script.google.com/macros/s/AKfycbxBwYgFLEQ0CHLWQseM8U4Dg0uBQC-2DCXN-93D0Yr7Hv9Suqe6eTvt8qGIjU5xi4SXDQ/exec';
         const START_HOUR = 7;
         const END_HOUR = 19;
@@ -174,7 +179,7 @@
             const toast = document.getElementById('toast');
             toast.innerText = msg;
             toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
+            setTimeout(() => toast.classList.add('hidden'), 4000);
         }
 
         const getWeekDates = (offset = 0) => {
@@ -198,22 +203,33 @@
             initGrids();
         }
 
+        /**
+         * 處理登入邏輯
+         */
         async function handleLogin() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim(); // 加上 trim()
+            const usernameField = document.getElementById('username');
+            const passwordField = document.getElementById('password');
+            const username = usernameField.value.trim();
+            const password = passwordField.value.trim();
+
             if (!username || !password) return showMessage('❌ 請完整填寫姓名與密碼');
 
             showLoading(true);
             try {
-                // 修正連線參數與對象
+                // 增加 headers 確保跨網域請求 JSON 格式
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // 某些環境下需要，但會看不到內容。正常情況應使用預設 cors
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'login', username, password })
+                });
+
+                // 注意：GAS POST 請求若跨域，可能需要透過特殊的 API 寫法或使用 GET 跳轉。
+                // 這裡採用標準 JSON POST。
                 const loginResp = await fetch(API_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'login', username, password })
                 });
-                
-                // 檢查 HTTP 狀態碼
-                if (!loginResp.ok) throw new Error('網路回應不正常');
-
                 const result = await loginResp.json();
 
                 if (result.success) {
@@ -224,11 +240,11 @@
                     document.getElementById('step-2').classList.remove('hidden');
                     initGrids();
                 } else {
-                    showMessage('❌ ' + (result.message || '驗證失敗'));
+                    showMessage('❌ ' + (result.message || '驗證失敗，請檢查密碼'));
                 }
             } catch (err) {
                 console.error(err);
-                showMessage('⚠️ 驗證發生錯誤，請稍後再試');
+                showMessage('⚠️ 連線失敗。請確認腳本已發佈且允許匿名存取。');
             } finally {
                 showLoading(false);
             }
@@ -250,13 +266,13 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    showMessage('✅ 儲存成功！');
+                    showMessage('✅ 資料儲存成功！');
                     await refreshHeatmap(true);
                 } else {
                     showMessage('❌ ' + result.message);
                 }
             } catch (err) {
-                showMessage('⚠️ 儲存出錯');
+                showMessage('⚠️ 儲存時發生錯誤');
             } finally {
                 showLoading(false);
             }
@@ -273,7 +289,7 @@
                 totalUsers = result.totalUsers || 0;
                 document.getElementById('total-users-label').innerText = `參與：${totalUsers} 人`;
                 if (render) renderGrid('others-grid-container', false);
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("熱點圖讀取失敗", e); }
         }
 
         function initGrids() {
@@ -285,6 +301,7 @@
             const container = document.getElementById(containerId);
             container.innerHTML = '';
 
+            // Header
             container.appendChild(createCell('時間', 'bg-gray-100 text-[10px] font-bold text-gray-400'));
             weekDates.forEach(date => {
                 const d = new Date(date);
@@ -293,6 +310,7 @@
                 container.appendChild(createCell(label, 'bg-gray-50 text-[11px] text-center font-bold text-gray-600 whitespace-pre'));
             });
 
+            // Grid Rows
             HOURS.forEach(hour => {
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
                 container.appendChild(createCell(timeStr, 'text-[10px] text-right pr-2 bg-gray-50 text-gray-400 font-mono'));
@@ -312,11 +330,14 @@
                         let count = 0;
                         let names = [];
 
+                        // 判斷資料格式：如果是字串/數字則為人數，如果是陣列則為名單
                         if (Array.isArray(data)) {
                             count = data.length;
-                            names = data;
+                            names = data; // 這裡就是 username 陣列
                         } else if (typeof data === 'number') {
                             count = data;
+                        } else if (typeof data === 'string' && !isNaN(data)) {
+                            count = parseInt(data);
                         }
 
                         if (count > 0 && totalUsers > 0) {
@@ -324,13 +345,14 @@
                             cell.style.setProperty('--opacity', opacity);
                             cell.classList.add('slot-other');
                             
-                            // 滑鼠移入：更新右側面板 + Tooltip
+                            // 更新名單面板與 Tooltip
+                            const showNames = names.length > 0 ? names.join('、') : `${count} 人有空`;
+                            
                             cell.addEventListener('mouseenter', () => updateInfoPanel(date, timeStr, names, count));
-                            cell.addEventListener('mouseleave', () => clearInfoPanel());
-
+                            
                             const tooltip = document.createElement('span');
                             tooltip.className = 'tooltip';
-                            tooltip.innerText = `${count} 人有空`;
+                            tooltip.innerText = showNames;
                             cell.appendChild(tooltip);
                         }
                     }
@@ -348,7 +370,9 @@
             return el;
         }
 
-        // --- 名單面板更新邏輯 ---
+        /**
+         * 更新右側「誰有空？」面板
+         */
         function updateInfoPanel(date, time, names, count) {
             const panel = document.getElementById('info-panel');
             const d = new Date(date);
@@ -356,32 +380,32 @@
             
             let html = `
                 <div class="animate-fade-in">
-                    <div class="mb-2">
-                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">選定時段</p>
+                    <div class="mb-4">
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">所選時段</p>
                         <p class="text-sm font-bold text-blue-600">${dateStr} ${time}</p>
                     </div>
                     <div>
-                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">有空名單 (${count}位)</p>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">有空名單 (${count}位)</p>
                         <div class="flex flex-wrap gap-2">
             `;
 
-            if (names.length > 0) {
+            if (names && names.length > 0) {
+                // 如果後端有傳姓名，直接渲染標籤
                 names.forEach(name => {
-                    html += `<span class="bg-green-50 text-green-700 px-2 py-1 rounded text-xs border border-green-100 font-medium">${name}</span>`;
+                    html += `<span class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs border border-blue-100 font-semibold shadow-sm">${name}</span>`;
                 });
+            } else if (count > 0) {
+                // 如果後端沒傳具體名單，只傳人數
+                html += `<p class="text-xs text-gray-500 font-medium bg-gray-50 p-3 rounded-lg border border-dashed border-gray-200 w-full text-center">目前有 ${count} 位夥伴有空</p>`;
             } else {
-                html += `<p class="text-xs text-gray-500">${count} 人填寫有空</p>`;
+                html += `<p class="text-xs text-gray-400 italic">該時段目前無人填寫</p>`;
             }
 
             html += `</div></div></div>`;
             panel.innerHTML = html;
         }
 
-        function clearInfoPanel() {
-            // 不一定要清空，可以保持最後選取的狀態，或顯示預設提示
-        }
-
-        // --- 滑鼠操作邏輯 ---
+        // --- 滑鼠拖曳選擇邏輯 ---
         function startSelect(e, id) {
             isMouseDown = true;
             isAdding = !mySelections.has(id);
