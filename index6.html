@@ -28,7 +28,6 @@
             z-index: 100;
         }
 
-        /* Tooltip Style */
         .tooltip {
             visibility: hidden;
             position: absolute;
@@ -167,8 +166,8 @@
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-8 py-4 rounded-2xl shadow-2xl hidden z-[200] text-sm font-bold animate-fade-in"></div>
 
     <script>
-        // 更新為您的部署網址
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzNQSkz530cQVOojNGp0SomGCk5l3-cDpJAbRnLP_wZ8FTUksUr2AQZpEXQl00_HCG7jw/exec';
+        // 已更新為您的部署網址
+        const API_URL = 'https://script.google.com/macros/s/AKfycbw7hrIXGwuMNFtloE2RDqrKVwAAIu0zN_zVrjt8A_0q6-p-zteeek26cIosb1n93ikgHA/exec';
         const START_HOUR = 7;
         const END_HOUR = 19;
         const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
@@ -320,7 +319,6 @@
                         cell.addEventListener('mousedown', (e) => startSelect(e, slotId));
                         cell.addEventListener('mouseover', () => handleMouseOver(slotId));
                     } else {
-                        // 此處接收 GAS 回傳的姓名陣列
                         const names = heatmapData[slotId] || [];
                         const count = names.length;
 
@@ -353,10 +351,6 @@
             return el;
         }
 
-        /**
-         * 更新右側「誰有空？」面板
-         * 此處正確解析 names 陣列
-         */
         function updateInfoPanel(date, time, names, count) {
             const panel = document.getElementById('info-panel');
             const d = new Date(date);
@@ -374,7 +368,6 @@
             `;
 
             if (names && names.length > 0) {
-                // 渲染所有導出的 username
                 names.forEach(name => {
                     html += `
                         <div class="flex items-center gap-2 bg-blue-50 p-3 rounded-xl border border-blue-100 shadow-sm">
@@ -390,7 +383,6 @@
             panel.innerHTML = html;
         }
 
-        // 滑鼠拖曳選擇邏輯
         function startSelect(e, id) {
             isMouseDown = true;
             isAdding = !mySelections.has(id);
@@ -419,13 +411,15 @@
         }
 
         function clearSelections() {
-            weekDates.forEach(date => {
-                HOURS.forEach(hour => {
-                    const id = `${date}_${hour.toString().padStart(2, '0')}:00`;
-                    mySelections.delete(id);
+            if(confirm("確定要清空本週所有選取嗎？")) {
+                weekDates.forEach(date => {
+                    HOURS.forEach(hour => {
+                        const id = `${date}_${hour.toString().padStart(2, '0')}:00`;
+                        mySelections.delete(id);
+                    });
                 });
-            });
-            renderGrid('my-grid-container', true);
+                renderGrid('my-grid-container', true);
+            }
         }
     </script>
 </body>
