@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會議時間調查工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .time-slot { height: 32px; user-select: none; transition: background-color 0.1s; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; }
+        .slot-selected { background-color: #3b82f6 !important; border-color: #2563eb; }
+        .slot-other { background-color: rgba(34, 197, 94, var(--opacity)) !important; position: relative; }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: 70px repeat(7, 1fr);
+            border-top: 1px solid #e5e7eb;
+            border-left: 1px solid #e5e7eb;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .tooltip {
+            visibility: hidden;
+            position: absolute;
+            z-index: 50;
+            background-color: #1f2937;
+            color: white;
+            text-align: left;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            min-width: 120px;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            line-height: 1.4;
+        }
+        .slot-other:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-900">
+
+    <div id="loading" class="loading-overlay hidden">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+        <p class="text-blue-600 font-bold">同步雲端資料中...</p>
+    </div>
+
+    <div id="app" class="max-w-[1600px] mx-auto p-4 md:p-6">
+        
+        <!-- 第 1 階段：身分登入 -->
+        <div id="step-1" class="flex flex-col items-center justify-center min-h-[85vh]">
+            <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
+                <div class="text-center mb-8">
+                    <div class="inline-block p-4 bg-blue-50 rounded-2xl mb-4">
+                        <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h1 id="login-title" class="text-3xl font-black mb-2 text-gray-800 tracking-tight">會議調查登入</h1>
+                    <p class="text-gray-400 text-sm">請輸入您的正確姓名與密碼</p>
+                </div>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">姓名 (Username)</label>
+                        <input type="text" id="username" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-medium" placeholder="請輸入姓名">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">密碼</label>
+                        <input type="password" id="password" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-medium" placeholder="輸入密碼">
+                    </div>
+                    <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all shadow-xl shadow-blue-200">
+                        立即登入
+                    </button>
+                    <p class="text-[10px] text-gray-400 text-center leading-relaxed">
+                        * 不同會議的資料是分開記錄的
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第 2 階段：主畫面 -->
+        <div id="step-2" class="hidden animate-fade-in">
+            <header class="bg-white p-6 rounded-3xl shadow-sm mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-gray-100">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span id="room-display-tag" class="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-black uppercase">ROOM</span>
+                        <h2 id="display-room-name" class="text-xl font-black text-gray-800">載入中...</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                         <span class="text-gray-400 text-xs">你好，<span id="display-user-name" class="font-bold text-gray-600"></span></span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center bg-gray-100 rounded-xl p-1 border">
+                        <button onclick="changeWeek(-1)" class="px-4 py-1.5 hover:bg-white rounded-lg transition text-xs font-bold text-gray-600">◀</button>
+                        <span id="week-label" class="px-4 font-black text-[10px] text-blue-600 uppercase tracking-widest">本週</span>
+                        <button onclick="changeWeek(1)" class="px-4 py-1.5 hover:bg-white rounded-lg transition text-xs font-bold text-gray-600">▶</button>
+                    </div>
+                    <button onclick="saveData()" class="bg-blue-600 text-white font-black px-6 py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition active:scale-95 text-sm">
+                        儲存提交
+                    </button>
+                    <button onclick="location.reload()" class="bg-white text-gray-400 border border-gray-200 px-4 py-3 rounded-xl hover:bg-gray-50 transition text-sm font-bold">登出</button>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div class="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="font-black text-gray-800 flex items-center gap-2 tracking-tight">
+                            <span class="w-2 h-5 bg-blue-500 rounded-full"></span>我的時間
+                        </h3>
+                        <button onclick="clearSelections()" class="text-[10px] font-bold text-red-400">清空</button>
+                    </div>
+                    <div id="my-grid-container" class="grid-container bg-white rounded-lg overflow-hidden"></div>
+                </div>
+
+                <div class="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="font-black text-gray-800 flex items-center gap-2 tracking-tight">
+                            <span class="w-2 h-5 bg-green-500 rounded-full"></span>團隊熱點
+                        </h3>
+                        <span id="total-users-label" class="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full">0 人</span>
+                    </div>
+                    <div id="others-grid-container" class="grid-container bg-white rounded-lg overflow-hidden"></div>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <div class="sticky top-6 bg-white p-6 rounded-3xl shadow-sm border border-gray-100 min-h-[500px]">
+                        <h3 class="font-black text-gray-800 mb-6 pb-3 border-b border-gray-50 text-sm">👤 誰有空？</h3>
+                        <div id="info-panel" class="space-y-4">
+                             <p class="text-[10px] text-gray-400 text-center py-10">指標移至右側圖表<br>查看名單</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-8 py-4 rounded-2xl shadow-2xl hidden z-[200] text-sm font-bold animate-fade-in"></div>
+
+    <script>
+        // --- 核心多會議設定 ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room') || 'default'; // 取得會議 ID
+        const roomTitle = urlParams.get('title') ? decodeURIComponent(urlParams.get('title')) : '會議時間調查';
+        
+        // 更新 UI 標題
+        document.title = roomTitle;
+        document.getElementById('login-title').innerText = roomTitle;
+        document.getElementById('display-room-name').innerText = roomTitle;
+
+        // --- 更新後的 API 網址 ---
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxpSxPbvTaZHDrauMFEc5vqCxYOABpo5KQn9j4VmcX-PG4PcCNAJYFf07kk5UL50EMdSg/exec';
+        
+        const START_HOUR = 7;
+        const END_HOUR = 19;
+        const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
+        
+        let mySelections = new Set();
+        let heatmapData = {}; 
+        let totalUsers = 0;
+        let isMouseDown = false;
+        let isAdding = true;
+        let currentWeekOffset = 0;
+
+        function showLoading(show) { document.getElementById('loading').classList.toggle('hidden', !show); }
+        function showMessage(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        const getWeekDates = (offset = 0) => {
+            const now = new Date();
+            const day = now.getDay(); 
+            const diff = now.getDate() - (day === 0 ? 6 : day - 1) + (offset * 7); 
+            const startDay = new Date(now.setDate(diff));
+            return Array.from({ length: 7 }, (_, i) => {
+                const date = new Date(startDay);
+                date.setDate(startDay.getDate() + i);
+                return date.toISOString().split('T')[0];
+            });
+        };
+
+        let weekDates = getWeekDates(0);
+
+        async function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (!username || !password) return showMessage('❌ 請輸入姓名與密碼');
+
+            showLoading(true);
+            try {
+                const loginResp = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'login', username, password, roomId })
+                });
+                const result = await loginResp.json();
+
+                if (result.success) {
+                    mySelections = new Set(result.availability || []);
+                    document.getElementById('display-user-name').innerText = username;
+                    await refreshHeatmap(false);
+                    document.getElementById('step-1').classList.add('hidden');
+                    document.getElementById('step-2').classList.remove('hidden');
+                    initGrids();
+                } else {
+                    showMessage('❌ ' + (result.message || '驗證失敗'));
+                }
+            } catch (err) { showLoading(false); showMessage('⚠️ 無法連線至伺服器'); }
+            finally { showLoading(false); }
+        }
+
+        async function saveData() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            showLoading(true);
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'save',
+                        username, password, roomId,
+                        availability: Array.from(mySelections)
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('✅ 資料儲存成功！');
+                    await refreshHeatmap(true);
+                } else { showMessage('❌ ' + result.message); }
+            } catch (err) { showMessage('⚠️ 儲存發生錯誤'); }
+            finally { showLoading(false); }
+        }
+
+        async function refreshHeatmap(render = true) {
+            try {
+                const resp = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getAll', roomId })
+                });
+                const result = await resp.json();
+                heatmapData = result.heatmap || {};
+                totalUsers = result.totalUsers || 0;
+                document.getElementById('total-users-label').innerText = `${totalUsers} 人`;
+                if (render) renderGrid('others-grid-container', false);
+            } catch (e) { console.error(e); }
+        }
+
+        function changeWeek(direction) {
+            currentWeekOffset += direction;
+            weekDates = getWeekDates(currentWeekOffset);
+            document.getElementById('week-label').innerText = currentWeekOffset === 0 ? '本週' : (currentWeekOffset > 0 ? `下 ${currentWeekOffset} 週` : `前 ${Math.abs(currentWeekOffset)} 週`);
+            initGrids();
+        }
+
+        function initGrids() {
+            renderGrid('my-grid-container', true);
+            renderGrid('others-grid-container', false);
+        }
+
+        function renderGrid(containerId, interactive) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            container.appendChild(createCell('時段', 'bg-gray-100 text-[10px] text-gray-400 font-bold'));
+            weekDates.forEach(date => {
+                const d = new Date(date);
+                const label = `${d.getMonth()+1}/${d.getDate()}\n(${['日','一','二','三','四','五','六'][d.getDay()]})`;
+                container.appendChild(createCell(label, 'bg-gray-50 text-[10px] text-center font-bold text-gray-500 whitespace-pre'));
+            });
+
+            HOURS.forEach(hour => {
+                const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+                container.appendChild(createCell(timeStr, 'text-[10px] text-right pr-2 bg-gray-50 text-gray-400 font-mono'));
+                weekDates.forEach(date => {
+                    const slotId = `${date}_${timeStr}`;
+                    const cell = document.createElement('div');
+                    cell.className = `time-slot cursor-pointer bg-white`;
+                    cell.dataset.id = slotId;
+                    if (interactive) {
+                        if (mySelections.has(slotId)) cell.classList.add('slot-selected');
+                        cell.addEventListener('mousedown', (e) => startSelect(e, slotId));
+                        cell.addEventListener('mouseover', () => handleMouseOver(slotId));
+                    } else {
+                        const names = heatmapData[slotId] || [];
+                        if (names.length > 0 && totalUsers > 0) {
+                            cell.style.setProperty('--opacity', Math.max(0.15, names.length / totalUsers));
+                            cell.classList.add('slot-other');
+                            cell.addEventListener('mouseenter', () => updateInfoPanel(date, timeStr, names));
+                            const tooltip = document.createElement('span');
+                            tooltip.className = 'tooltip';
+                            tooltip.innerText = `${names.length} 人有空\n${names.slice(0, 3).join('、')}${names.length > 3 ? '...' : ''}`;
+                            cell.appendChild(tooltip);
+                        }
+                    }
+                    container.appendChild(cell);
+                });
+            });
+        }
+
+        function createCell(text, className) {
+            const el = document.createElement('div');
+            el.className = `h-[32px] flex items-center justify-center border-b border-r border-gray-100 ${className}`;
+            el.innerText = text;
+            return el;
+        }
+
+        function updateInfoPanel(date, time, names) {
+            const panel = document.getElementById('info-panel');
+            const d = new Date(date);
+            const dateStr = `${d.getMonth()+1}/${d.getDate()} (${['日','一','二','三','四','五','六'][d.getDay()]})`;
+            let html = `<div class="animate-fade-in"><p class="text-[10px] text-blue-600 font-bold mb-3">${dateStr} ${time}</p><div class="flex flex-col gap-2">`;
+            names.forEach(name => {
+                html += `<div class="bg-blue-50 p-2 rounded-lg border border-blue-100 text-xs font-bold text-blue-800">${name}</div>`;
+            });
+            html += `</div></div>`;
+            panel.innerHTML = html;
+        }
+
+        function startSelect(e, id) {
+            isMouseDown = true;
+            isAdding = !mySelections.has(id);
+            toggleSelection(id, e.target);
+            const upHandler = () => { isMouseDown = false; window.removeEventListener('mouseup', upHandler); };
+            window.addEventListener('mouseup', upHandler);
+        }
+
+        function handleMouseOver(id) {
+            if (!isMouseDown) return;
+            const cell = document.querySelector(`#my-grid-container [data-id="${id}"]`);
+            if (cell) {
+                if (isAdding && !mySelections.has(id)) toggleSelection(id, cell);
+                else if (!isAdding && mySelections.has(id)) toggleSelection(id, cell);
+            }
+        }
+
+        function toggleSelection(id, cell) {
+            if (mySelections.has(id)) { mySelections.delete(id); cell.classList.remove('slot-selected'); }
+            else { mySelections.add(id); cell.classList.add('slot-selected'); }
+        }
+
+        function clearSelections() {
+            mySelections.clear();
+            renderGrid('my-grid-container', true);
+        }
+    </script>
+</body>
+</html>
